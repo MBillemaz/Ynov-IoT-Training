@@ -50,7 +50,7 @@
 								</option>
 								<option id="gnu.c.compiler.option.dialect.std.635235246" name="Language standard" superClass="gnu.c.compiler.option.dialect.std" useByScannerDiscovery="true" value="gnu.c.compiler.dialect.c99" valueType="enumerated"/>
 								<option id="fr.ac6.managedbuild.tool.gnu.cross.c.compiler.nolink.585534770" name="Compile and assemble, but do not link (-c)" superClass="fr.ac6.managedbuild.tool.gnu.cross.c.compiler.nolink" useByScannerDiscovery="false" value="true" valueType="boolean"/>
-								<option id="fr.ac6.managedbuild.tool.gnu.cross.c.compiler.fdata.1927103663" name="Place the data in their own section (-fdata-sections)" superClass="fr.ac6.managedbuild.tool.gnu.cross.c.compiler.fdata" useByScannerDiscovery="false" value="true" valueType="boolean"/>
+								<option id="fr.ac6.managedbuild.tool.gnu.cross.c.compiler.fdata.539012705" superClass="fr.ac6.managedbuild.tool.gnu.cross.c.compiler.fdata" useByScannerDiscovery="false" value="true" valueType="boolean"/>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1117891639" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 								<inputType id="fr.ac6.managedbuild.tool.gnu.cross.c.compiler.input.1766993200"/>
 								<inputType id="fr.ac6.managedbuild.tool.gnu.cross.c.compiler.input.c.1880364432" superClass="fr.ac6.managedbuild.tool.gnu.cross.c.compiler.input.c"/>

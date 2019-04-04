@@ -106,7 +106,7 @@ void enableAllSensors(void);
 int main(void)
 {
   const char *name = "BlueNRG";
-0  uint8_t SERVER_BDADDR[] = {0x02, 0x34, 0x00, 0xE1, 0x80, 0x03};
+  uint8_t SERVER_BDADDR[] = {0x02, 0x34, 0x00, 0xE1, 0x80, 0x03};
   uint8_t bdaddr[BDADDR_SIZE];
   uint16_t service_handle, dev_name_char_handle, appearance_char_handle;
 
@@ -125,6 +125,9 @@ int main(void)
    *  - Low Level Initialization
    */
   HAL_Init();
+
+  /* Configure LED2 */
+  BSP_LED_Init(LED2);
 
   /* Configure the system clock */
   SystemClock_Config();
@@ -214,6 +217,13 @@ int main(void)
 
   PRINTF("SERVER: BLE Stack Initialized\n");
 
+  ret = Add_Acc_Service();
+
+  if(ret == BLE_STATUS_SUCCESS)
+    PRINTF("Acc service added successfully.\n");
+  else
+    PRINTF("Error while adding Acc service.\n");
+
   ret = Add_Environmental_Sensor_Service();
 
   if(ret == BLE_STATUS_SUCCESS)
@@ -221,13 +231,16 @@ int main(void)
   else
     PRINTF("Error while adding Environmental Sensor service.\n");
 
-  // Set accelerometer service
-  ret = Add_Acc_Service();
+  /* Instantiate LED Service with one characteristic:
+   * - LED characteristic (Readable and Writable)
+   */
+  ret = Add_LED_Service();
 
   if(ret == BLE_STATUS_SUCCESS)
-    PRINTF("Accelerometer Sensor service added successfully.\n");
+    PRINTF("LED service added successfully.\n");
   else
-    PRINTF("Error while adding Accelerometer Sensor service.\n");
+    PRINTF("Error while adding LED service.\n");
+
 
   /* Set output power level */
   ret = aci_hal_set_tx_power_level(1,4);
