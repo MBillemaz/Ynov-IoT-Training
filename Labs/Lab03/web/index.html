@@ -79,6 +79,12 @@ and open the template in the editor.
                     <h4>Humidity : <span id="humidity">?</span> %</h4>
                     <div class="chart2" id="chart2" style="width:250px; height: 200px"></div>
                 </div>
+                <div class="jumbotron">
+                    <h4>Accelerometre :</h4>
+                    <span class="col-md-4">X: <span id="accX"> ?</span></span>
+                    <span class="col-md-4">Y: <span id="accY"> ?</span></span>
+                    <span class="col-md-4">Z: <span id="accZ"> ?</span></span>
+                </div>
             </div>
         </div>
 
@@ -125,7 +131,7 @@ and open the template in the editor.
                             url: "http://localhost:1880/humidity",
                             dataType: "json",
                             success: function (data) {
-                                
+
                                 worker.dataHum = (data[data.length - 1].hum);
                                 worker.drawPlotTemp();
                             }
@@ -186,6 +192,15 @@ and open the template in the editor.
                     };
 
                     worker.drawPlotTemp();
+                    //-- Accelerometre
+                    var worker = this;
+                    worker.socketAcc = new WebSocket("ws://localhost:1880/acc");
+                    worker.socketAcc.onmessage = function (msg) {
+                        var values = JSON.parse(msg.data.value);
+                        $("#accX").html(values.x);
+                        $("#accY").html(values.y);
+                        $("#accZ").html(values.z);
+                    };
                 },
                 parseDataRow: function (dataRow) {
                     var date = new Date(dataRow.date);
@@ -231,16 +246,16 @@ and open the template in the editor.
                     this.plotHum = $.jqplot('chart2', [
                         [this.dataHum]
                     ], {
-                        seriesDefaults: {
-                            renderer: $.jqplot.MeterGaugeRenderer,
-                            rendererOptions: {
-                                min: 0,
-                                max: 100,
-                                intervals: [15, 30, 80, 100],
-                                intervalColors: ['#cc6666', '#E7E658', '#66cc66', '#93b75f']
+                            seriesDefaults: {
+                                renderer: $.jqplot.MeterGaugeRenderer,
+                                rendererOptions: {
+                                    min: 0,
+                                    max: 100,
+                                    intervals: [15, 30, 80, 100],
+                                    intervalColors: ['#cc6666', '#E7E658', '#66cc66', '#93b75f']
+                                }
                             }
-                        }
-                    });
+                        });
                 }
             };
         })(window, jQuery);
