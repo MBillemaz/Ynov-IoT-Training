@@ -1,0 +1,10 @@
+version: '3'
+services:
+    gateway:
+        build: ./Gateway
+        ports:
+            - "1880:1880"
+    mosquitto:
+        image: "eclipse-mosquitto"
+        volumes:
+            - ./Cloud/mosquitto.conf:/mosquitto/config/mosquitto.conf
