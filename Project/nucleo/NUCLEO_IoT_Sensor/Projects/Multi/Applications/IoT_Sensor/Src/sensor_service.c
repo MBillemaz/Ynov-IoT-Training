@@ -58,7 +58,7 @@
 volatile int connected = FALSE;
 volatile uint8_t set_connectable = 1;
 volatile uint16_t connection_handle = 0;
-volatile uint8_t notification_enabled = FALSE;
+volatile uint8_t notification_enabled = TRUE;
 uint16_t accServHandle, accCharHandle;
 uint16_t envSensServHandle, tempCharHandle, pressCharHandle, humidityCharHandle;
 
@@ -148,6 +148,11 @@ do {\
     BSP_TEMPERATURE_Sensor_Enable( TEMPERATURE_handle );
   }
 
+  void enableNotification(void){
+	  //TODO
+
+
+  }
 
 /** @defgroup SENSOR_SERVICE_Exported_Functions 
  * @{
@@ -205,6 +210,7 @@ tBleStatus LedState_Update(uint8_t ledState)
   return BLE_STATUS_SUCCESS;
 }
 
+
 /**
  * @brief  Update Button state characteristic value.
  *
@@ -230,9 +236,8 @@ void checkButtonState(){
 		buttonState = state;
 		if(state == GPIO_PIN_RESET){
 			buttonPushed = buttonPushed == 1 ? 0 : 1;
+			ButtonState_Update(buttonPushed);
 		}
-		ButtonState_Update(buttonPushed);
-
 	}
 }
 
@@ -457,7 +462,7 @@ void GAP_DisconnectionComplete_CB(void)
   PRINTF("Disconnected\n");
   /* Make the device connectable again. */
   set_connectable = TRUE;
-  notification_enabled = FALSE;
+  notification_enabled = TRUE;
 }
 
 /**
@@ -644,7 +649,7 @@ tBleStatus Add_Button_Service(void)
    * API description
   */
   ret =  aci_gatt_add_char(buttonServHandle, UUID_TYPE_128, uuid, 4,
-                           CHAR_PROP_WRITE_WITHOUT_RESP | CHAR_PROP_READ,
+		  	  	  	  	  CHAR_PROP_NOTIFY | CHAR_PROP_READ,
 						   ATTR_PERMISSION_NONE,
 						   GATT_NOTIFY_ATTRIBUTE_WRITE,
                            16, 1, &buttonCharHandle);

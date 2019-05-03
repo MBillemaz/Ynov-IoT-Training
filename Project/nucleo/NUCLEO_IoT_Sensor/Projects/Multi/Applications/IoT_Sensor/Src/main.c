@@ -126,6 +126,7 @@ int main(void)
    */
   HAL_Init();
 
+  enableNotification();
   /* Configure LED2 */
   BSP_LED_Init(LED2);
 
@@ -138,7 +139,6 @@ int main(void)
   /* Initialize sensors
   initializeAllSensors();
   enableAllSensors(); */
-
 
   /* Initialize the BlueNRG SPI driver */
   BNRG_SPI_Init();
