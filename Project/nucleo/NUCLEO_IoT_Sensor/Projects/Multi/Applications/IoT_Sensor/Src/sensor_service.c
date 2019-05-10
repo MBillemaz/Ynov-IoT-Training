@@ -58,7 +58,7 @@
 volatile int connected = FALSE;
 volatile uint8_t set_connectable = 1;
 volatile uint16_t connection_handle = 0;
-volatile uint8_t notification_enabled = FALSE;
+volatile uint8_t notification_enabled = TRUE;
 uint16_t accServHandle, accCharHandle;
 uint16_t envSensServHandle, tempCharHandle, pressCharHandle, humidityCharHandle;
 
@@ -76,6 +76,9 @@ uint8_t ledState = 0;
 uint16_t buttonServHandle, buttonCharHandle;
 uint32_t buttonState = 0;
 uint32_t buttonPushed = 0;
+
+uint16_t hbServHandle, hbCharHandle;
+uint8_t hbState = 60;
 
 extern uint8_t bnrg_expansion_board;
 /**
@@ -110,6 +113,10 @@ do {\
 // BUTTON UUID's
 #define COPY_BUTTON_SERVICE_UUID(uuid_struct)  COPY_UUID_128(uuid_struct,0x0d,0x36,0x6e,0x80, 0xcf,0x3a, 0x11,0xe1, 0x9a,0xb4, 0x00,0x02,0xa5,0xd5,0xc5,0x1b)
 #define COPY_BUTTON_UUID(uuid_struct)          COPY_UUID_128(uuid_struct,0x0e,0x36,0x6e,0x80, 0xcf,0x3a, 0x11,0xe1, 0x9a,0xb4, 0x00,0x02,0xa5,0xd5,0xc5,0x1b)
+
+// BUTTON UUID's
+#define COPY_HB_SERVICE_UUID(uuid_struct)  COPY_UUID_128(uuid_struct,0x11,0x36,0x6e,0x80, 0xcf,0x3a, 0x11,0xe1, 0x9a,0xb4, 0x00,0x02,0xa5,0xd5,0xc5,0x1b)
+#define COPY_HB_UUID(uuid_struct)          COPY_UUID_128(uuid_struct,0x12,0x36,0x6e,0x80, 0xcf,0x3a, 0x11,0xe1, 0x9a,0xb4, 0x00,0x02,0xa5,0xd5,0xc5,0x1b)
 
 
 /* Store Value into a buffer in Little Endian Format */
@@ -147,7 +154,6 @@ do {\
     BSP_HUMIDITY_Sensor_Enable( HUMIDITY_handle );
     BSP_TEMPERATURE_Sensor_Enable( TEMPERATURE_handle );
   }
-
 
 /** @defgroup SENSOR_SERVICE_Exported_Functions 
  * @{
@@ -192,11 +198,10 @@ fail:
  * @param  Structure containing led state
  * @retval Status
  */
-tBleStatus LedState_Update(uint8_t ledState)
+tBleStatus LedState_Update(uint8_t led)
 {
   tBleStatus ret;
-
-  ret = aci_gatt_update_char_value(ledServHandle, ledCharHandle, 0, 1, &ledState);
+  ret = aci_gatt_update_char_value(ledServHandle, ledCharHandle, 0, 1, &led);
 
   if (ret != BLE_STATUS_SUCCESS){
     PRINTF("Error while updating LED characteristic.\n") ;
@@ -204,6 +209,7 @@ tBleStatus LedState_Update(uint8_t ledState)
   }
   return BLE_STATUS_SUCCESS;
 }
+
 
 /**
  * @brief  Update Button state characteristic value.
@@ -230,10 +236,34 @@ void checkButtonState(){
 		buttonState = state;
 		if(state == GPIO_PIN_RESET){
 			buttonPushed = buttonPushed == 1 ? 0 : 1;
+			ButtonState_Update(buttonPushed);
 		}
-		ButtonState_Update(buttonPushed);
-
 	}
+}
+
+/**
+ * @brief  Update Button state characteristic value.
+ *
+ * @param  Structure containing led state
+ * @retval Status
+ */
+tBleStatus hbState_Update(uint8_t heartbeat)
+{
+  tBleStatus ret;
+
+  ret = aci_gatt_update_char_value(hbServHandle, hbCharHandle, 0, 1, &heartbeat);
+
+  if (ret != BLE_STATUS_SUCCESS){
+    PRINTF("Error while updating BUTTON characteristic.\n") ;
+    return BLE_STATUS_ERROR ;
+  }
+  return BLE_STATUS_SUCCESS;
+}
+
+void sendHeartbeat(){
+	hbState = hbState + rand() % (20 + 1 - 0) - 10;
+	hbState_Update(hbState);
+
 }
 
 /**
@@ -457,7 +487,7 @@ void GAP_DisconnectionComplete_CB(void)
   PRINTF("Disconnected\n");
   /* Make the device connectable again. */
   set_connectable = TRUE;
-  notification_enabled = FALSE;
+  notification_enabled = TRUE;
 }
 
 /**
@@ -488,6 +518,8 @@ void Read_Request_CB(uint16_t handle)
   }
   else if(handle == buttonCharHandle + 1){
 	  ButtonState_Update(buttonState);
+  } else if (handle == hbCharHandle + 1){
+	  sendHeartbeat();
   }
 
   
@@ -644,7 +676,7 @@ tBleStatus Add_Button_Service(void)
    * API description
   */
   ret =  aci_gatt_add_char(buttonServHandle, UUID_TYPE_128, uuid, 4,
-                           CHAR_PROP_WRITE_WITHOUT_RESP | CHAR_PROP_READ,
+		  	  	  	  	  CHAR_PROP_NOTIFY | CHAR_PROP_READ,
 						   ATTR_PERMISSION_NONE,
 						   GATT_NOTIFY_ATTRIBUTE_WRITE,
                            16, 1, &buttonCharHandle);
@@ -655,6 +687,54 @@ tBleStatus Add_Button_Service(void)
 
 fail:
   PRINTF("Error while adding Button service.\n");
+  return BLE_STATUS_ERROR;
+}
+
+/*
+ * @brief  Add Hearbeat service using a vendor specific profile.
+ * @param  None
+ * @retval Status
+ */
+tBleStatus Add_HB_Service(void)
+{
+  tBleStatus ret;
+  uint8_t uuid[16];
+
+  /* copy "BUTTON service UUID" defined above to 'uuid' local variable */
+  COPY_HB_SERVICE_UUID(uuid);
+
+  /*
+   * now add "BUTTON service" to GATT server, service handle is returned
+   * via 'buttonServHandle' parameter of aci_gatt_add_serv() API.
+   * Please refer to 'BlueNRG Application Command Interface.pdf' for detailed
+   * API description
+  */
+  ret = aci_gatt_add_serv(UUID_TYPE_128, uuid, PRIMARY_SERVICE, 7,
+                          &hbServHandle);
+  if (ret != BLE_STATUS_SUCCESS) goto fail;
+
+  /* copy "BUTTON characteristic UUID" defined above to 'uuid' local variable */
+  COPY_HB_UUID(uuid);
+  /*
+   * now add "BUTTON characteristic" to LED service, characteristic handle
+   * is returned via 'buttonCharHandle' parameter of aci_gatt_add_char() API.
+   * This characteristic is writable, as specified by 'CHAR_PROP_WRITE' parameter.
+   * Please refer to 'BlueNRG Application Command Interface.pdf' for detailed
+   * API description
+  */
+  ret =  aci_gatt_add_char(hbServHandle, UUID_TYPE_128, uuid, 2,
+		  	  	  	  	   CHAR_PROP_READ | CHAR_PROP_WRITE | CHAR_PROP_WRITE_WITHOUT_RESP,
+						   ATTR_PERMISSION_NONE,
+						   GATT_NOTIFY_ATTRIBUTE_WRITE | GATT_NOTIFY_READ_REQ_AND_WAIT_FOR_APPL_RESP,
+                           16, 1, &hbCharHandle);
+  if (ret != BLE_STATUS_SUCCESS) goto fail;
+
+
+  PRINTF("Service Heartbeat added. Handle 0x%0dX, LED Charac handle: 0x%0eX\n", hbServHandle, hbCharHandle);
+  return BLE_STATUS_SUCCESS;
+
+fail:
+  PRINTF("Error while adding Hearbeat service.\n");
   return BLE_STATUS_ERROR;
 }
 
@@ -678,6 +758,8 @@ void Attribute_Modified_CB(uint16_t handle, uint8_t data_length, uint8_t *att_da
 
 		  (ledState != 0) ? BSP_LED_On(LED2) : BSP_LED_Off(LED2);
 	  }
+  } else if (handle == hbCharHandle + 1){
+	  hbState = *att_data;
   }
 }
 

@@ -40,7 +40,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "cube_hal.h"
-
+#include <time.h>
 #include "osal.h"
 #include "sensor_service.h"
 #include "debug.h"
@@ -92,6 +92,7 @@ void User_Process();
 void initializeAllSensors(void);
 void enableAllSensors(void);
 
+clock_t before;
 /**
  * @}
  */
@@ -109,10 +110,10 @@ int main(void)
   uint8_t SERVER_BDADDR[] = {0x02, 0x34, 0x00, 0xE1, 0x80, 0x03};
   uint8_t bdaddr[BDADDR_SIZE];
   uint16_t service_handle, dev_name_char_handle, appearance_char_handle;
-
   uint8_t  hwVersion;
   uint16_t fwVersion;
 
+  before = clock();
   int ret;
 
   /* STM32Cube HAL library initialization:
@@ -126,6 +127,9 @@ int main(void)
    */
   HAL_Init();
 
+  initializeAllSensors();
+  enableAllSensors();
+
   /* Configure LED2 */
   BSP_LED_Init(LED2);
 
@@ -138,7 +142,6 @@ int main(void)
   /* Initialize sensors
   initializeAllSensors();
   enableAllSensors(); */
-
 
   /* Initialize the BlueNRG SPI driver */
   BNRG_SPI_Init();
@@ -227,6 +230,14 @@ int main(void)
   else
     PRINTF("Error while adding Acc service.\n");
 
+  ret = Add_HB_Service();
+
+    if(ret == BLE_STATUS_SUCCESS)
+      PRINTF("Heartbeat service added successfully.\n");
+    else
+      PRINTF("Error while adding Heartbeat service.\n");
+
+
   ret = Add_Environmental_Sensor_Service();
 
   if(ret == BLE_STATUS_SUCCESS)
@@ -279,6 +290,7 @@ void User_Process()
 
   checkButtonState();
 }
+
 
 /**
  * @}
